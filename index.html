@@ -92,10 +92,6 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
-      /* ミニカレンダーは全幅 */
-      .sidebar-left .card:first-child {
-        grid-column: 1 / -1;
-      }
 
       /* モーダルを全画面に近く */
       .modal { width: 95vw; padding: 20px; border-radius: 14px; }
@@ -115,20 +111,6 @@
 
     .card { background: var(--surface); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
     .card-title { font-size: 12px; font-weight: 700; color: var(--text-sub); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
-
-    /* mini calendar */
-    .mini-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .mini-cal-title { font-size: 14px; font-weight: 700; color: var(--text); }
-    .arrow-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text-sub); padding: 2px 6px; border-radius: 4px; }
-    .arrow-btn:hover { background: var(--primary-light); color: var(--primary); }
-    .mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
-    .mini-cal-dow { font-size: 10px; color: var(--text-sub); padding: 3px 0; font-weight: 600; }
-    .mini-cal-day { font-size: 12px; padding: 4px 2px; border-radius: 50%; cursor: pointer; line-height: 1; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
-    .mini-cal-day:hover { background: var(--primary-light); color: var(--primary); }
-    .mini-cal-day.today { background: var(--primary); color: #fff; font-weight: 700; }
-    .mini-cal-day.selected { background: var(--primary-light); color: var(--primary); font-weight: 700; }
-    .mini-cal-day.has-event::after { content: ''; display: block; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; margin: 1px auto 0; }
-    .mini-cal-day.empty { cursor: default; }
 
     /* legend */
     .legend-list { display: flex; flex-direction: column; gap: 7px; }
@@ -281,16 +263,6 @@
 
   <!-- ===== LEFT SIDEBAR ===== -->
   <div class="sidebar-left">
-    <!-- mini calendar -->
-    <div class="card">
-      <div class="mini-cal-header">
-        <button class="arrow-btn" onclick="miniPrev()">‹</button>
-        <span class="mini-cal-title" id="miniCalTitle"></span>
-        <button class="arrow-btn" onclick="miniNext()">›</button>
-      </div>
-      <div class="mini-cal-grid" id="miniCalGrid"></div>
-    </div>
-
     <!-- legend / filter -->
     <div class="card">
       <div class="card-title">カテゴリ</div>
@@ -407,7 +379,6 @@ let hiddenCats = new Set();
 let currentYear = Y, currentMonth = M;
 let selectedDate = null;
 let editingId = null;
-let miniYear = Y, miniMonth = M;
 let lastUpdatedAt = '';
 
 // ユーザー追記分はlocalStorageに保持
@@ -550,23 +521,21 @@ function selectDate(dateStr) {
   selectedDate = dateStr;
   renderCalendar();
   renderDetail();
-  renderMiniCal();
 }
 
 function prevMonth() {
   currentMonth--;
   if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  renderCalendar(); renderMiniCal();
+  renderCalendar();
 }
 function nextMonth() {
   currentMonth++;
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  renderCalendar(); renderMiniCal();
+  renderCalendar();
 }
 function goToday() {
   currentYear = today.getFullYear(); currentMonth = today.getMonth();
-  miniYear = currentYear; miniMonth = currentMonth;
-  renderCalendar(); renderMiniCal();
+  renderCalendar();
 }
 
 // ===== DETAIL =====
@@ -681,41 +650,9 @@ function renderUpcoming() {
 function jumpTo(dateStr) {
   const [y,m] = dateStr.split('-');
   currentYear = parseInt(y); currentMonth = parseInt(m)-1;
-  miniYear = currentYear; miniMonth = currentMonth;
   selectedDate = dateStr;
-  renderCalendar(); renderMiniCal(); renderDetail();
+  renderCalendar(); renderDetail();
 }
-
-// ===== MINI CALENDAR =====
-function renderMiniCal() {
-  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  document.getElementById('miniCalTitle').textContent = `${miniYear}年 ${months[miniMonth]}`;
-  const firstDay = new Date(miniYear, miniMonth, 1).getDay();
-  const daysInMonth = new Date(miniYear, miniMonth+1, 0).getDate();
-  const prevDays = new Date(miniYear, miniMonth, 0).getDate();
-  const grid = document.getElementById('miniCalGrid');
-  const dows = ['日','月','火','水','木','金','土'];
-  let html = dows.map(d=>`<div class="mini-cal-dow">${d}</div>`).join('');
-  let cells = [];
-  for (let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,cur:false});
-  for (let i=1;i<=daysInMonth;i++) cells.push({day:i,cur:true});
-  while(cells.length%7!==0) cells.push({day:cells.length-firstDay-daysInMonth+1,cur:false});
-  cells.forEach((cell,idx)=>{
-    let dateStr;
-    if(!cell.cur){
-      if(idx<firstDay){ const pd=new Date(miniYear,miniMonth,0); dateStr=d(pd.getFullYear(),pd.getMonth()+1,cell.day); }
-      else { const nd=new Date(miniYear,miniMonth+1,1); dateStr=d(nd.getFullYear(),nd.getMonth()+1,cell.day); }
-    } else { dateStr=d(miniYear,miniMonth+1,cell.day); }
-    const isToday = dateStr===todayStr();
-    const isSel = dateStr===selectedDate;
-    const hasEv = allEventsForDate(dateStr).length>0;
-    let cls='mini-cal-day'+(cell.cur?'':' empty')+(isToday?' today':'')+(isSel&&!isToday?' selected':'')+(hasEv?' has-event':'');
-    html+=`<div class="${cls}" onclick="jumpTo('${dateStr}')" style="${!cell.cur?'opacity:.35':''}">${cell.day}</div>`;
-  });
-  grid.innerHTML = html;
-}
-function miniPrev(){ miniMonth--; if(miniMonth<0){miniMonth=11;miniYear--;} renderMiniCal(); }
-function miniNext(){ miniMonth++; if(miniMonth>11){miniMonth=0;miniYear++;} renderMiniCal(); }
 
 // ===== MODAL =====
 function openModal(dateStr, evId) {
@@ -781,7 +718,7 @@ function showToast(msg) {
 
 // ===== INIT =====
 function renderAll() {
-  renderCalendar(); renderMiniCal(); renderLegend(); renderUpcoming(); renderDetail();
+  renderCalendar(); renderLegend(); renderUpcoming(); renderDetail();
 }
 loadEvents();
 
