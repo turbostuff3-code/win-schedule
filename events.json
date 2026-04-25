@@ -162,6 +162,16 @@
       "dateEnd": "2026-12-29",
       "venue": "やまぎん県民ホール",
       "note": "爆弾犬篇＆豪華客船篇"
+    },
+    {
+      "id": 19,
+      "title": "NHK-FM「Enjoy Simple English」",
+      "category": "radio",
+      "dateStart": "2026-04-01",
+      "dateEnd": "2026-09-30",
+      "weekdays": [1, 2, 3, 4, 5],
+      "venue": "NHK-FM",
+      "note": "6:00〜6:05 月〜金 毎朝放送"
     }
   ]
 }
