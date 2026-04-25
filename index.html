@@ -57,6 +57,62 @@
     /* ===== SIDEBAR LEFT ===== */
     .sidebar-left { display: flex; flex-direction: column; gap: 12px; }
 
+    /* ===== MOBILE ===== */
+    @media (max-width: 768px) {
+      header { padding: 12px 16px; }
+      .header-title { font-size: 15px; }
+      .header-subtitle { font-size: 10px; }
+      .btn { font-size: 12px; padding: 7px 12px; }
+
+      .container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        padding: 10px;
+        gap: 10px;
+      }
+      /* モバイルでの表示順：カレンダー→詳細→直近→カテゴリ→ミニカレ */
+      .main-cal     { order: 1; }
+      .sidebar-right { order: 2; }
+      .sidebar-left  { order: 3; }
+
+      /* カレンダーセルをコンパクトに */
+      .cal-cell { min-height: 72px; padding: 4px 2px 2px; }
+      .cal-nav { border-radius: 12px 12px 0 0; padding: 10px 14px; }
+      .cal-nav-title { font-size: 16px; }
+      .event-pill { font-size: 9px; padding: 2px 3px; }
+      .day-num { font-size: 12px; width: 22px; height: 22px; }
+
+      /* 右サイドバー（詳細カード） */
+      .sidebar-right { display: flex; flex-direction: column; gap: 10px; }
+      .detail-card { padding: 14px; }
+
+      /* 左サイドバー：横並びに */
+      .sidebar-left {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      /* ミニカレンダーは全幅 */
+      .sidebar-left .card:first-child {
+        grid-column: 1 / -1;
+      }
+
+      /* モーダルを全画面に近く */
+      .modal { width: 95vw; padding: 20px; border-radius: 14px; }
+    }
+
+    @media (max-width: 400px) {
+      .cal-cell { min-height: 60px; }
+      .event-pill { display: none; }
+      .cal-cell.has-sp-event::after {
+        content: '●';
+        font-size: 8px;
+        color: #7c3aed;
+        display: block;
+        text-align: center;
+      }
+    }
+
     .card { background: var(--surface); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
     .card-title { font-size: 12px; font-weight: 700; color: var(--text-sub); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
 
