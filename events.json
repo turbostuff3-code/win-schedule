@@ -3,10 +3,10 @@
   "events": [
     {
       "id": 1,
-      "title": "映画「黄金泥棒」公開中",
+      "title": "映画「黄金泥棒」公開",
       "category": "movie",
       "dateStart": "2026-04-03",
-      "dateEnd": "2026-05-31",
+      "dateEnd": null,
       "venue": "全国ロードショー",
       "note": "金城光輝役で出演。田中麗奈主演クライムコメディ。公式: ougondorobo.jp"
     },
@@ -21,10 +21,10 @@
     },
     {
       "id": 3,
-      "title": "「外道の歌 SEASON2」配信",
+      "title": "「外道の歌 SEASON2」配信開始",
       "category": "tv",
       "dateStart": "2026-04-09",
-      "dateEnd": "2026-06-30",
+      "dateEnd": null,
       "venue": "DMM TV（独占配信）",
       "note": "園田夢二役（漫画編集者）。毎週木曜1話配信。主演：窪塚洋介・亀梨和也 / 監督：白石晃士"
     },
@@ -90,6 +90,15 @@
       "dateEnd": null,
       "venue": "河口湖ステラシアター（山梨）",
       "note": "開場13:00 / 開演14:00。出演：柴咲コウ、ナオト・インティライミ、miwa、MORISAKI WIN、山本彩"
+    },
+    {
+      "id": 20,
+      "title": "映画「LOVE SONG」DVD発売",
+      "category": "movie",
+      "dateStart": "2026-06-05",
+      "dateEnd": null,
+      "venue": "",
+      "note": "DVD発売日"
     },
     {
       "id": 11,
