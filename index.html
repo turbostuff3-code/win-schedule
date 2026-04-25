@@ -453,15 +453,25 @@ function formatDate(str) {
 function todayStr() {
   return d(today.getFullYear(), today.getMonth()+1, today.getDate());
 }
-function dateInRange(dateStr, startStr, endStr) {
-  if (!endStr) return dateStr === startStr;
-  return dateStr >= startStr && dateStr <= endStr;
+function dateInRange(dateStr, startStr, endStr, weekdays) {
+  // 日付範囲チェック
+  if (!endStr) {
+    if (dateStr !== startStr) return false;
+  } else {
+    if (!(dateStr >= startStr && dateStr <= endStr)) return false;
+  }
+  // 曜日フィルター（weekdays: [1,2,3,4,5] = 月〜金）
+  if (weekdays && weekdays.length > 0) {
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    if (!weekdays.includes(dow)) return false;
+  }
+  return true;
 }
 function eventsForDate(dateStr) {
-  return events.filter(e => !hiddenCats.has(e.category) && dateInRange(dateStr, e.dateStart, e.dateEnd));
+  return events.filter(e => !hiddenCats.has(e.category) && dateInRange(dateStr, e.dateStart, e.dateEnd, e.weekdays));
 }
 function allEventsForDate(dateStr) {
-  return events.filter(e => dateInRange(dateStr, e.dateStart, e.dateEnd));
+  return events.filter(e => dateInRange(dateStr, e.dateStart, e.dateEnd, e.weekdays));
 }
 
 // ===== MAIN CALENDAR =====
@@ -639,19 +649,26 @@ function toggleCat(k) {
 // ===== UPCOMING =====
 function renderUpcoming() {
   const tStr = todayStr();
+  // 繰り返しイベントは終了日まで有効、通常イベントは開始日が今日以降
   const coming = events
-    .filter(e => e.dateStart >= tStr)
+    .filter(e => {
+      const endDate = e.dateEnd || e.dateStart;
+      return endDate >= tStr;
+    })
     .sort((a,b) => a.dateStart.localeCompare(b.dateStart))
-    .slice(0, 5);
+    .slice(0, 6);
   const list = document.getElementById('upcomingList');
   if (coming.length === 0) { list.innerHTML = '<div style="color:var(--text-sub);font-size:12px">直近の予定はありません</div>'; return; }
   list.innerHTML = coming.map(ev => {
     const cat = CATS[ev.category];
     const [,m,dd] = ev.dateStart.split('-');
+    const isRecurring = ev.weekdays && ev.weekdays.length > 0;
+    const dowLabels = ['日','月','火','水','木','金','土'];
+    const recurLabel = isRecurring ? ev.weekdays.map(d=>dowLabels[d]).join('・') + '曜' : '';
     return `<div class="upcoming-item" onclick="jumpTo('${ev.dateStart}')">
       <div class="upcoming-date-badge">
-        <div class="month">${parseInt(m)}月</div>
-        <div class="day">${parseInt(dd)}</div>
+        <div class="month">${parseInt(m)}月〜</div>
+        <div class="day" style="${isRecurring?'font-size:13px':''}">${isRecurring ? recurLabel : parseInt(dd)}</div>
       </div>
       <div class="upcoming-info">
         <span class="cat-badge" style="background:${cat.color}">${cat.icon}</span>
