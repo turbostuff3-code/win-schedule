@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>森崎ウィン スケジュール帳</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="WINスケジュール" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <style>
+    :root {
+      --bg: #f9f5ff;
+      --surface: #ffffff;
+      --primary: #7c3aed;
+      --primary-light: #ede9fe;
+      --text: #1e1b4b;
+      --text-sub: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 2px 12px rgba(124,58,237,.10);
+
+      --tv: #3b82f6;       /* TV出演 */
+      --stage: #ec4899;    /* 舞台・ライブ */
+      --radio: #10b981;    /* ラジオ */
+      --movie: #f59e0b;    /* 映画・DVD */
+      --event: #f97316;    /* イベント */
+      --other: #8b5cf6;    /* その他 */
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hiragino Sans', 'Meiryo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(124,58,237,.3);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-logo { font-size: 22px; }
+    .header-title { font-size: 18px; font-weight: 700; letter-spacing: .04em; }
+    .header-subtitle { font-size: 11px; opacity: .8; margin-top: 2px; }
+    .header-right { display: flex; gap: 8px; }
+    .btn { border: none; cursor: pointer; border-radius: 8px; font-size: 13px; font-weight: 600; padding: 8px 16px; transition: .15s; }
+    .btn-white { background: #fff; color: var(--primary); }
+    .btn-white:hover { background: #ede9fe; }
+    .btn-ghost { background: rgba(255,255,255,.2); color: #fff; }
+    .btn-ghost:hover { background: rgba(255,255,255,.3); }
+
+    /* ===== LAYOUT ===== */
+    .container { display: grid; grid-template-columns: 240px 1fr 280px; gap: 16px; padding: 16px; max-width: 1300px; margin: 0 auto; }
+
+    /* ===== SIDEBAR LEFT ===== */
+    .sidebar-left { display: flex; flex-direction: column; gap: 12px; }
+
+    .card { background: var(--surface); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+    .card-title { font-size: 12px; font-weight: 700; color: var(--text-sub); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
+
+    /* mini calendar */
+    .mini-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .mini-cal-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .arrow-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text-sub); padding: 2px 6px; border-radius: 4px; }
+    .arrow-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+    .mini-cal-dow { font-size: 10px; color: var(--text-sub); padding: 3px 0; font-weight: 600; }
+    .mini-cal-day { font-size: 12px; padding: 4px 2px; border-radius: 50%; cursor: pointer; line-height: 1; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+    .mini-cal-day:hover { background: var(--primary-light); color: var(--primary); }
+    .mini-cal-day.today { background: var(--primary); color: #fff; font-weight: 700; }
+    .mini-cal-day.selected { background: var(--primary-light); color: var(--primary); font-weight: 700; }
+    .mini-cal-day.has-event::after { content: ''; display: block; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; margin: 1px auto 0; }
+    .mini-cal-day.empty { cursor: default; }
+
+    /* legend */
+    .legend-list { display: flex; flex-direction: column; gap: 7px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: .1s; }
+    .legend-item:hover { background: var(--bg); }
+    .legend-item.hidden { opacity: .4; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-count { margin-left: auto; font-size: 11px; color: var(--text-sub); font-weight: 600; }
+
+    /* upcoming events left */
+    .upcoming-list { display: flex; flex-direction: column; gap: 8px; }
+    .upcoming-item { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: .1s; }
+    .upcoming-item:hover { background: var(--bg); }
+    .upcoming-date-badge { min-width: 36px; text-align: center; }
+    .upcoming-date-badge .month { font-size: 9px; color: var(--text-sub); text-transform: uppercase; }
+    .upcoming-date-badge .day { font-size: 17px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .upcoming-info .title { font-size: 12px; font-weight: 600; }
+    .upcoming-info .meta { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .cat-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: #fff; }
+
+    /* ===== MAIN CALENDAR ===== */
+    .main-cal { display: flex; flex-direction: column; gap: 0; }
+
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-radius: 14px 14px 0 0; padding: 14px 20px; box-shadow: var(--shadow); }
+    .cal-nav-title { font-size: 20px; font-weight: 800; color: var(--text); }
+    .cal-nav-btns { display: flex; gap: 6px; }
+    .nav-btn { background: var(--primary-light); border: none; cursor: pointer; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; color: var(--primary); font-weight: 700; transition: .1s; }
+    .nav-btn:hover { background: var(--primary); color: #fff; }
+    .today-btn { background: var(--primary-light); border: none; cursor: pointer; border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 700; color: var(--primary); transition: .1s; }
+    .today-btn:hover { background: var(--primary); color: #fff; }
+
+    .cal-grid-wrap { background: var(--surface); border-radius: 0 0 14px 14px; box-shadow: var(--shadow); overflow: hidden; }
+    .cal-dow-row { display: grid; grid-template-columns: repeat(7,1fr); background: var(--primary-light); }
+    .cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--primary); padding: 8px 0; letter-spacing: .04em; }
+    .cal-dow:first-child { color: #ef4444; }
+    .cal-dow:last-child { color: #3b82f6; }
+
+    .cal-body { display: grid; grid-template-columns: repeat(7,1fr); }
+    .cal-cell {
+      min-height: 110px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 6px 4px 4px; position: relative; transition: background .1s; cursor: pointer;
+    }
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-cell:hover { background: #faf7ff; }
+    .cal-cell.other-month { background: #fafafa; }
+    .cal-cell.other-month .day-num { color: #d1d5db; }
+    .cal-cell.today-cell { background: #fdf4ff; }
+    .day-num {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; margin-bottom: 3px;
+    }
+    .cal-cell.today-cell .day-num { background: var(--primary); color: #fff; }
+    .cal-cell:nth-child(7n+1) .day-num { color: #ef4444; }
+    .cal-cell:nth-child(7n) .day-num { color: #3b82f6; }
+    .cal-cell.today-cell .day-num { background: var(--primary); color: #fff !important; }
+
+    .event-pill {
+      display: block; font-size: 10px; font-weight: 600; padding: 2px 5px;
+      border-radius: 4px; color: #fff; margin-bottom: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer; transition: opacity .1s;
+    }
+    .event-pill:hover { opacity: .85; }
+    .more-link { font-size: 10px; color: var(--primary); font-weight: 600; cursor: pointer; padding: 1px 4px; }
+    .more-link:hover { text-decoration: underline; }
+
+    /* ===== SIDEBAR RIGHT ===== */
+    .sidebar-right { display: flex; flex-direction: column; gap: 12px; }
+    .detail-card { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+    .detail-empty { color: var(--text-sub); font-size: 13px; text-align: center; padding: 20px 0; }
+
+    .selected-date-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; color: var(--text); border-bottom: 2px solid var(--primary-light); padding-bottom: 10px; }
+    .event-detail-list { display: flex; flex-direction: column; gap: 10px; }
+    .event-detail-item {
+      border-left: 4px solid; border-radius: 0 8px 8px 0;
+      padding: 8px 12px; background: var(--bg);
+    }
+    .event-detail-title { font-size: 13px; font-weight: 700; }
+    .event-detail-meta { font-size: 11px; color: var(--text-sub); margin-top: 3px; }
+    .event-detail-note { font-size: 12px; color: var(--text); margin-top: 5px; line-height: 1.5; }
+    .event-detail-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .action-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer; color: var(--text-sub); transition: .1s; }
+    .action-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .action-btn.del:hover { border-color: #ef4444; color: #ef4444; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100;
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 18px; padding: 28px; width: 420px; max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: fadeUp .2s ease;
+    }
+    @keyframes fadeUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-title { font-size: 16px; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+    .form-row { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 5px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; font-family: inherit; outline: none; transition: .15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+    .form-textarea { resize: vertical; min-height: 72px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .btn-primary { background: var(--primary); color: #fff; padding: 9px 22px; border-radius: 9px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: .1s; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-cancel { background: var(--bg); color: var(--text-sub); padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); cursor: pointer; transition: .1s; }
+    .btn-cancel:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1e1b4b; color: #fff; padding: 10px 22px; border-radius: 40px;
+      font-size: 13px; font-weight: 600; z-index: 200; transition: transform .3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .add-btn-cell {
+      display: flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary-light); color: var(--primary);
+      font-size: 14px; font-weight: 700; cursor: pointer; position: absolute; top: 6px; right: 6px;
+      opacity: 0; transition: opacity .1s;
+    }
+    .cal-cell:hover .add-btn-cell { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <span class="header-logo">⭐</span>
+    <div>
+      <div class="header-title">森崎ウィン スケジュール帳</div>
+      <div class="header-subtitle">俳優・ミュージシャン 活動スケジュール　<span id="updatedAt" style="opacity:.7;font-size:10px;"></span></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-ghost" onclick="openModal(null, null)">＋ 予定を追加</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ===== LEFT SIDEBAR ===== -->
+  <div class="sidebar-left">
+    <!-- mini calendar -->
+    <div class="card">
+      <div class="mini-cal-header">
+        <button class="arrow-btn" onclick="miniPrev()">‹</button>
+        <span class="mini-cal-title" id="miniCalTitle"></span>
+        <button class="arrow-btn" onclick="miniNext()">›</button>
+      </div>
+      <div class="mini-cal-grid" id="miniCalGrid"></div>
+    </div>
+
+    <!-- legend / filter -->
+    <div class="card">
+      <div class="card-title">カテゴリ</div>
+      <div class="legend-list" id="legendList"></div>
+    </div>
+
+    <!-- upcoming -->
+    <div class="card">
+      <div class="card-title">直近の予定</div>
+      <div class="upcoming-list" id="upcomingList"></div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CALENDAR ===== -->
+  <div class="main-cal">
+    <div class="cal-nav">
+      <div class="cal-nav-title" id="calNavTitle"></div>
+      <div class="cal-nav-btns">
+        <button class="today-btn" onclick="goToday()">今日</button>
+        <button class="nav-btn" onclick="prevMonth()">‹</button>
+        <button class="nav-btn" onclick="nextMonth()">›</button>
+      </div>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="cal-dow-row">
+        <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div>
+        <div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div>
+        <div class="cal-dow">土</div>
+      </div>
+      <div class="cal-body" id="calBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT SIDEBAR ===== -->
+  <div class="sidebar-right">
+    <div class="card detail-card" id="detailCard">
+      <div class="detail-empty">📅<br>日付をクリックすると<br>詳細が表示されます</div>
+    </div>
+    <!-- stats -->
+    <div class="card" id="statsCard">
+      <div class="card-title">今月の集計</div>
+      <div id="statsContent" style="display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">📝 予定を追加</div>
+    <div class="form-row">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="fTitle" placeholder="例：ドラマ「〇〇」出演" />
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">開始日</label>
+        <input class="form-input" id="fDateStart" type="date" />
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">終了日（任意）</label>
+        <input class="form-input" id="fDateEnd" type="date" />
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:14px">
+      <label class="form-label">カテゴリ</label>
+      <select class="form-select" id="fCategory">
+        <option value="tv">📺 TV出演</option>
+        <option value="stage">🎭 舞台・ライブ</option>
+        <option value="radio">🎙 ラジオ</option>
+        <option value="movie">🎬 映画・DVD</option>
+        <option value="event">🎤 イベント・握手会</option>
+        <option value="other">✨ その他</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">放送局・会場など</label>
+      <input class="form-input" id="fVenue" placeholder="例：フジテレビ、東京芸術劇場" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">メモ</label>
+      <textarea class="form-textarea" id="fNote" placeholder="詳細、時間など自由に"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-primary" onclick="saveEvent()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DATA =====
+const CATS = {
+  tv:    { label: 'TV出演',      color: '#3b82f6', icon: '📺' },
+  stage: { label: '舞台・ライブ', color: '#ec4899', icon: '🎭' },
+  radio: { label: 'ラジオ',      color: '#10b981', icon: '🎙' },
+  movie: { label: '映画・DVD',   color: '#f59e0b', icon: '🎬' },
+  event: { label: 'イベント',    color: '#f97316', icon: '🎤' },
+  other: { label: 'その他',      color: '#8b5cf6', icon: '✨' },
+};
+
+// サンプルデータ
+const today = new Date();
+const Y = today.getFullYear(), M = today.getMonth();
+
+function d(y,m,day) { return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`; }
+
+let events = [];
+let nextId = 100;
+let hiddenCats = new Set();
+let currentYear = Y, currentMonth = M;
+let selectedDate = null;
+let editingId = null;
+let miniYear = Y, miniMonth = M;
+let lastUpdatedAt = '';
+
+// ユーザー追記分はlocalStorageに保持
+const LS_KEY = 'celeb_extra_events_win';
+
+function saveToStorage() {
+  // events.jsonにない（id>=100の）ものだけ保存
+  const extra = events.filter(e => e.id >= 100);
+  localStorage.setItem(LS_KEY, JSON.stringify(extra));
+}
+
+async function loadEvents() {
+  // events.json から読み込む
+  let base = [];
+  try {
+    const res = await fetch('events.json?t=' + Date.now());
+    const data = await res.json();
+    base = data.events || [];
+    lastUpdatedAt = data.updatedAt || '';
+  } catch(e) {
+    console.warn('events.json の読み込みに失敗:', e);
+  }
+
+  // ユーザー追記分をマージ
+  const extra = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+  events = [...base, ...extra];
+  nextId = Math.max(99, ...events.map(e => e.id)) + 1;
+
+  // 更新時刻をヘッダーに表示
+  if (lastUpdatedAt) {
+    const el = document.getElementById('updatedAt');
+    if (el) el.textContent = '最終更新: ' + lastUpdatedAt;
+  }
+  renderAll();
+}
+
+// ===== HELPERS =====
+function formatDate(str) {
+  if (!str) return '';
+  const [y,m,d] = str.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+function todayStr() {
+  return d(today.getFullYear(), today.getMonth()+1, today.getDate());
+}
+function dateInRange(dateStr, startStr, endStr) {
+  if (!endStr) return dateStr === startStr;
+  return dateStr >= startStr && dateStr <= endStr;
+}
+function eventsForDate(dateStr) {
+  return events.filter(e => !hiddenCats.has(e.category) && dateInRange(dateStr, e.dateStart, e.dateEnd));
+}
+function allEventsForDate(dateStr) {
+  return events.filter(e => dateInRange(dateStr, e.dateStart, e.dateEnd));
+}
+
+// ===== MAIN CALENDAR =====
+function renderCalendar() {
+  const title = `${currentYear}年${currentMonth+1}月`;
+  document.getElementById('calNavTitle').textContent = title;
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+  const prevDays = new Date(currentYear, currentMonth, 0).getDate();
+
+  const body = document.getElementById('calBody');
+  body.innerHTML = '';
+
+  let cells = [];
+  for (let i = firstDay-1; i >= 0; i--) cells.push({ day: prevDays-i, cur: false });
+  for (let i = 1; i <= daysInMonth; i++) cells.push({ day: i, cur: true });
+  while (cells.length % 7 !== 0) cells.push({ day: cells.length - firstDay - daysInMonth + 1, cur: false });
+
+  cells.forEach((cell, idx) => {
+    const div = document.createElement('div');
+    div.className = 'cal-cell' + (!cell.cur ? ' other-month' : '');
+
+    const y = currentYear, m = currentMonth + 1;
+    let dateStr;
+    if (!cell.cur) {
+      if (idx < firstDay) {
+        const pd = new Date(currentYear, currentMonth, 0);
+        dateStr = d(pd.getFullYear(), pd.getMonth()+1, cell.day);
+      } else {
+        const nd = new Date(currentYear, currentMonth+1, 1);
+        dateStr = d(nd.getFullYear(), nd.getMonth()+1, cell.day);
+      }
+    } else {
+      dateStr = d(y, m, cell.day);
+    }
+
+    if (dateStr === todayStr()) div.classList.add('today-cell');
+    if (dateStr === selectedDate) div.classList.add('selected-cell');
+
+    div.innerHTML = `<div class="day-num">${cell.day}</div>`;
+
+    const dayEvents = eventsForDate(dateStr);
+    const maxShow = 3;
+    dayEvents.slice(0, maxShow).forEach(ev => {
+      const pill = document.createElement('div');
+      pill.className = 'event-pill';
+      pill.style.background = CATS[ev.category].color;
+      pill.title = ev.title;
+      pill.textContent = CATS[ev.category].icon + ' ' + ev.title;
+      pill.onclick = e => { e.stopPropagation(); selectDate(dateStr); };
+      div.appendChild(pill);
+    });
+    if (dayEvents.length > maxShow) {
+      const more = document.createElement('div');
+      more.className = 'more-link';
+      more.textContent = `他${dayEvents.length - maxShow}件`;
+      more.onclick = e => { e.stopPropagation(); selectDate(dateStr); };
+      div.appendChild(more);
+    }
+
+    const addBtn = document.createElement('div');
+    addBtn.className = 'add-btn-cell';
+    addBtn.textContent = '+';
+    addBtn.onclick = e => { e.stopPropagation(); openModal(dateStr, null); };
+    div.appendChild(addBtn);
+
+    div.onclick = () => selectDate(dateStr);
+    body.appendChild(div);
+  });
+
+  renderStats();
+}
+
+function selectDate(dateStr) {
+  selectedDate = dateStr;
+  renderCalendar();
+  renderDetail();
+  renderMiniCal();
+}
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar(); renderMiniCal();
+}
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar(); renderMiniCal();
+}
+function goToday() {
+  currentYear = today.getFullYear(); currentMonth = today.getMonth();
+  miniYear = currentYear; miniMonth = currentMonth;
+  renderCalendar(); renderMiniCal();
+}
+
+// ===== DETAIL =====
+function renderDetail() {
+  const card = document.getElementById('detailCard');
+  if (!selectedDate) {
+    card.innerHTML = '<div class="detail-empty">📅<br>日付をクリックすると<br>詳細が表示されます</div>';
+    return;
+  }
+  const dayEvs = allEventsForDate(selectedDate);
+  const [y,m,dd] = selectedDate.split('-');
+  const dow = ['日','月','火','水','木','金','土'][new Date(selectedDate).getDay()];
+  let html = `<div class="selected-date-title">${parseInt(m)}月${parseInt(dd)}日（${dow}）</div>`;
+  if (dayEvs.length === 0) {
+    html += '<div class="detail-empty" style="padding:12px 0">この日の予定はありません<br><br><button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="openModal(\''+selectedDate+'\', null)">＋ 追加する</button></div>';
+  } else {
+    html += '<div class="event-detail-list">';
+    dayEvs.forEach(ev => {
+      const cat = CATS[ev.category];
+      const span = ev.dateEnd && ev.dateEnd !== ev.dateStart ? `${formatDate(ev.dateStart)} 〜 ${formatDate(ev.dateEnd)}` : formatDate(ev.dateStart);
+      html += `
+        <div class="event-detail-item" style="border-color:${cat.color}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span class="cat-badge" style="background:${cat.color}">${cat.icon} ${cat.label}</span>
+          </div>
+          <div class="event-detail-title">${ev.title}</div>
+          ${ev.venue ? `<div class="event-detail-meta">📍 ${ev.venue}</div>` : ''}
+          ${ev.dateEnd && ev.dateEnd !== ev.dateStart ? `<div class="event-detail-meta">🗓 ${span}</div>` : ''}
+          ${ev.note ? `<div class="event-detail-note">💬 ${ev.note}</div>` : ''}
+          <div class="event-detail-actions">
+            <button class="action-btn" onclick="openModal(null, ${ev.id})">編集</button>
+            <button class="action-btn del" onclick="deleteEvent(${ev.id})">削除</button>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    html += `<button class="btn-primary" style="width:100%;margin-top:12px;font-size:12px;padding:8px" onclick="openModal('${selectedDate}', null)">＋ この日に追加</button>`;
+  }
+  card.innerHTML = html;
+}
+
+// ===== STATS =====
+function renderStats() {
+  const cnt = {};
+  Object.keys(CATS).forEach(k => cnt[k] = 0);
+  events.forEach(ev => {
+    const s = new Date(ev.dateStart), e = ev.dateEnd ? new Date(ev.dateEnd) : s;
+    const fm = new Date(currentYear, currentMonth, 1), lm = new Date(currentYear, currentMonth+1, 0);
+    if (s <= lm && e >= fm) cnt[ev.category]++;
+  });
+  const sc = document.getElementById('statsContent');
+  sc.innerHTML = Object.entries(cnt).filter(([,v])=>v>0).map(([k,v]) => {
+    const cat = CATS[k];
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+      <span style="width:10px;height:10px;border-radius:2px;background:${cat.color};flex-shrink:0;display:inline-block"></span>
+      <span>${cat.icon} ${cat.label}</span>
+      <span style="margin-left:auto;font-weight:700;color:${cat.color}">${v}件</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--text-sub);font-size:13px">今月の予定はありません</div>';
+}
+
+// ===== LEGEND =====
+function renderLegend() {
+  const cnt = {};
+  Object.keys(CATS).forEach(k => cnt[k] = 0);
+  events.forEach(ev => cnt[ev.category]++);
+  const list = document.getElementById('legendList');
+  list.innerHTML = Object.entries(CATS).map(([k, cat]) => `
+    <div class="legend-item ${hiddenCats.has(k)?'hidden':''}" onclick="toggleCat('${k}')">
+      <span class="legend-dot" style="background:${cat.color}"></span>
+      <span>${cat.icon} ${cat.label}</span>
+      <span class="legend-count">${cnt[k]}</span>
+    </div>`).join('');
+}
+function toggleCat(k) {
+  if (hiddenCats.has(k)) hiddenCats.delete(k); else hiddenCats.add(k);
+  renderLegend(); renderCalendar(); renderDetail();
+}
+
+// ===== UPCOMING =====
+function renderUpcoming() {
+  const tStr = todayStr();
+  const coming = events
+    .filter(e => e.dateStart >= tStr)
+    .sort((a,b) => a.dateStart.localeCompare(b.dateStart))
+    .slice(0, 5);
+  const list = document.getElementById('upcomingList');
+  if (coming.length === 0) { list.innerHTML = '<div style="color:var(--text-sub);font-size:12px">直近の予定はありません</div>'; return; }
+  list.innerHTML = coming.map(ev => {
+    const cat = CATS[ev.category];
+    const [,m,dd] = ev.dateStart.split('-');
+    return `<div class="upcoming-item" onclick="jumpTo('${ev.dateStart}')">
+      <div class="upcoming-date-badge">
+        <div class="month">${parseInt(m)}月</div>
+        <div class="day">${parseInt(dd)}</div>
+      </div>
+      <div class="upcoming-info">
+        <span class="cat-badge" style="background:${cat.color}">${cat.icon}</span>
+        <span class="title" style="margin-left:4px">${ev.title}</span>
+        ${ev.venue ? `<div class="meta">📍 ${ev.venue}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function jumpTo(dateStr) {
+  const [y,m] = dateStr.split('-');
+  currentYear = parseInt(y); currentMonth = parseInt(m)-1;
+  miniYear = currentYear; miniMonth = currentMonth;
+  selectedDate = dateStr;
+  renderCalendar(); renderMiniCal(); renderDetail();
+}
+
+// ===== MINI CALENDAR =====
+function renderMiniCal() {
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('miniCalTitle').textContent = `${miniYear}年 ${months[miniMonth]}`;
+  const firstDay = new Date(miniYear, miniMonth, 1).getDay();
+  const daysInMonth = new Date(miniYear, miniMonth+1, 0).getDate();
+  const prevDays = new Date(miniYear, miniMonth, 0).getDate();
+  const grid = document.getElementById('miniCalGrid');
+  const dows = ['日','月','火','水','木','金','土'];
+  let html = dows.map(d=>`<div class="mini-cal-dow">${d}</div>`).join('');
+  let cells = [];
+  for (let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,cur:false});
+  for (let i=1;i<=daysInMonth;i++) cells.push({day:i,cur:true});
+  while(cells.length%7!==0) cells.push({day:cells.length-firstDay-daysInMonth+1,cur:false});
+  cells.forEach((cell,idx)=>{
+    let dateStr;
+    if(!cell.cur){
+      if(idx<firstDay){ const pd=new Date(miniYear,miniMonth,0); dateStr=d(pd.getFullYear(),pd.getMonth()+1,cell.day); }
+      else { const nd=new Date(miniYear,miniMonth+1,1); dateStr=d(nd.getFullYear(),nd.getMonth()+1,cell.day); }
+    } else { dateStr=d(miniYear,miniMonth+1,cell.day); }
+    const isToday = dateStr===todayStr();
+    const isSel = dateStr===selectedDate;
+    const hasEv = allEventsForDate(dateStr).length>0;
+    let cls='mini-cal-day'+(cell.cur?'':' empty')+(isToday?' today':'')+(isSel&&!isToday?' selected':'')+(hasEv?' has-event':'');
+    html+=`<div class="${cls}" onclick="jumpTo('${dateStr}')" style="${!cell.cur?'opacity:.35':''}">${cell.day}</div>`;
+  });
+  grid.innerHTML = html;
+}
+function miniPrev(){ miniMonth--; if(miniMonth<0){miniMonth=11;miniYear--;} renderMiniCal(); }
+function miniNext(){ miniMonth++; if(miniMonth>11){miniMonth=0;miniYear++;} renderMiniCal(); }
+
+// ===== MODAL =====
+function openModal(dateStr, evId) {
+  editingId = evId;
+  document.getElementById('modalTitle').textContent = evId ? '📝 予定を編集' : '📝 予定を追加';
+  if (evId) {
+    const ev = events.find(e=>e.id===evId);
+    document.getElementById('fTitle').value = ev.title;
+    document.getElementById('fDateStart').value = ev.dateStart;
+    document.getElementById('fDateEnd').value = ev.dateEnd || '';
+    document.getElementById('fCategory').value = ev.category;
+    document.getElementById('fVenue').value = ev.venue || '';
+    document.getElementById('fNote').value = ev.note || '';
+  } else {
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fDateStart').value = dateStr || '';
+    document.getElementById('fDateEnd').value = '';
+    document.getElementById('fCategory').value = 'tv';
+    document.getElementById('fVenue').value = '';
+    document.getElementById('fNote').value = '';
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('fTitle').focus(), 100);
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId=null; }
+function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+
+function saveEvent() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { alert('タイトルを入力してください'); return; }
+  const dateStart = document.getElementById('fDateStart').value;
+  if (!dateStart) { alert('開始日を入力してください'); return; }
+  const obj = {
+    id: editingId || nextId++,
+    title,
+    dateStart,
+    dateEnd: document.getElementById('fDateEnd').value || null,
+    category: document.getElementById('fCategory').value,
+    venue: document.getElementById('fVenue').value.trim(),
+    note: document.getElementById('fNote').value.trim(),
+  };
+  if (editingId) { events = events.map(e=>e.id===editingId?obj:e); showToast('✅ 予定を更新しました'); }
+  else { events.push(obj); showToast('✅ 予定を追加しました'); }
+  saveToStorage();
+  closeModal();
+  renderAll();
+}
+
+function deleteEvent(id) {
+  if (!confirm('この予定を削除しますか？')) return;
+  events = events.filter(e=>e.id!==id);
+  saveToStorage();
+  showToast('🗑 削除しました');
+  renderAll();
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ===== INIT =====
+function renderAll() {
+  renderCalendar(); renderMiniCal(); renderLegend(); renderUpcoming(); renderDetail();
+}
+loadEvents();
+
+// ===== PWA Service Worker 登録 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
