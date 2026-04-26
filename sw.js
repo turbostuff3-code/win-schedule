@@ -1,4 +1,4 @@
-const CACHE = 'win-schedule-v1';
+const CACHE = 'win-schedule-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
