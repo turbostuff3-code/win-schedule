@@ -397,10 +397,12 @@ function saveToStorage() {
 async function loadEvents() {
   // events.json から読み込む
   let base = [];
+  let onAir = [];
   try {
     const res = await fetch('events.json?t=' + Date.now());
     const data = await res.json();
     base = data.events || [];
+    onAir = data.onAir || [];
     lastUpdatedAt = data.updatedAt || '';
   } catch(e) {
     console.warn('events.json の読み込みに失敗:', e);
@@ -416,7 +418,7 @@ async function loadEvents() {
     const el = document.getElementById('updatedAt');
     if (el) el.textContent = '最終更新: ' + lastUpdatedAt;
   }
-  renderOnAir(data.onAir || []);
+  renderOnAir(onAir);
   renderAll();
 }
 
