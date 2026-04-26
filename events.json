@@ -1,5 +1,9 @@
 {
   "updatedAt": "2026-04-25 12:00:00",
+  "onAir": [
+    {"title": "外道の歌 SEASON2", "platform": "DMM TV", "note": "毎週木曜配信中"},
+    {"title": "映画「黄金泥棒」", "platform": "全国ロードショー", "note": "公開中"}
+  ],
   "events": [
     {
       "id": 1,
