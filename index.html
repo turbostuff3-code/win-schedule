@@ -306,6 +306,10 @@
       <div class="card-title">今月の集計</div>
       <div id="statsContent" style="display:flex;flex-direction:column;gap:7px;"></div>
     </div>
+    <div class="card" id="onAirCard" style="display:none">
+      <div class="card-title">📺 放映・配信中</div>
+      <div id="onAirContent" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -412,6 +416,7 @@ async function loadEvents() {
     const el = document.getElementById('updatedAt');
     if (el) el.textContent = '最終更新: ' + lastUpdatedAt;
   }
+  renderOnAir(data.onAir || []);
   renderAll();
 }
 
@@ -714,6 +719,21 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ===== ON AIR =====
+function renderOnAir(onAirList) {
+  const card = document.getElementById('onAirCard');
+  const content = document.getElementById('onAirContent');
+  if (!onAirList || onAirList.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  content.innerHTML = onAirList.map(item => `
+    <div style="background:var(--bg);border-radius:8px;padding:8px 10px;border-left:3px solid var(--primary)">
+      <div style="font-size:13px;font-weight:700">${item.title}</div>
+      <div style="font-size:11px;color:var(--text-sub);margin-top:3px">
+        📡 ${item.platform}　<span style="color:var(--primary);font-weight:600">${item.note}</span>
+      </div>
+    </div>`).join('');
 }
 
 // ===== INIT =====
