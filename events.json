@@ -125,6 +125,15 @@
       "note": "DVD発売日"
     },
     {
+      "id": 22,
+      "title": "THE UNITY SUPER VOICE",
+      "category": "stage",
+      "dateStart": "2026-07-11",
+      "dateEnd": null,
+      "venue": "ヒューリックホール東京",
+      "note": ""
+    },
+    {
       "id": 11,
       "title": "「毎日が夏祭り」出演",
       "category": "event",
